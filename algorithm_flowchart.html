@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punch-In/Punch-Out Algorithm Flow</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .mermaid {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .explanation {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .test-cases {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .legend {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Punch-In/Punch-Out Algorithm Flow</h1>
+        
+        <div class="section">
+            <h2>Main Algorithm Flow</h2>
+            <div class="mermaid">
+                flowchart TD
+                    A[Start: processPunchData] --> B[Initialize Variables]
+                    B --> C[Sort Punches by Time]
+                    C --> D{For Each Punch}
+                    
+                    D --> E{Punch Type?}
+                    E -->|IN| F{Already Punched In?}
+                    E -->|OUT| G{Currently Punched In?}
+                    
+                    F -->|Yes| H[Fill Previous Period as Complete<br/>hours_worked: 0.25, incomplete: false]
+                    F -->|No| I[Set isPunchedIn = true<br/>Update lastEffectivePunchTime]
+                    H --> I
+                    
+                    G -->|Yes| J[Valid IN-OUT Pair<br/>Fill as Complete Work<br/>hours_worked: 0.25, incomplete: false]
+                    G -->|No| K[Orphaned OUT<br/>Fill Previous Period as Incomplete<br/>hours_worked: 0.25, incomplete: true]
+                    
+                    J --> L[Set isPunchedIn = false<br/>Update lastEffectivePunchTime]
+                    K --> L
+                    I --> M[Continue to Next Punch]
+                    L --> M
+                    
+                    M --> D
+                    D -->|No More Punches| N{Final State Check}
+                    
+                    N -->|Still Punched In| O[Fill Current Time as Incomplete<br/>Fill Future as Incomplete<br/>hours_worked: 0.25, incomplete: true]
+                    N -->|Punched Out| P[Fill Remaining Day as Not Worked<br/>hours_worked: 0, incomplete: false]
+                    
+                    O --> Q[Return Updated Intervals]
+                    P --> Q
+                    
+                    style A fill:#e1f5fe
+                    style Q fill:#c8e6c9
+                    style H fill:#ffecb3
+                    style J fill:#dcedc8
+                    style K fill:#ffcdd2
+                    style O fill:#fff3e0
+                    style P fill:#f3e5f5
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>State Machine Logic</h2>
+            <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> PunchedOut : Start of Day
+                    
+                    PunchedOut --> PunchedIn : IN punch
+                    PunchedIn --> PunchedOut : OUT punch
+                    PunchedIn --> PunchedIn : IN punch (closes previous period)
+                    PunchedOut --> PunchedOut : OUT punch (creates incomplete period)
+                    
+                    PunchedIn --> [*] : End of Day (incomplete)
+                    PunchedOut --> [*] : End of Day (complete)
+                    
+                    note right of PunchedIn : Active work period
+                    note right of PunchedOut : Inactive period
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Decision Tree for Punch Processing</h2>
+            <div class="mermaid">
+                flowchart TD
+                    A[New Punch Event] --> B{Punch Type}
+                    
+                    B -->|IN| C{Current State}
+                    B -->|OUT| D{Current State}
+                    
+                    C -->|Already IN| E[Scenario: IN → IN<br/>Action: Close previous period as COMPLETE<br/>Start new period]
+                    C -->|Currently OUT| F[Scenario: OUT → IN<br/>Action: Start new work period]
+                    
+                    D -->|Currently IN| G[Scenario: IN → OUT<br/>Action: Close period as COMPLETE work]
+                    D -->|Already OUT| H[Scenario: OUT → OUT<br/>Action: Mark previous period as INCOMPLETE work]
+                    
+                    E --> I[Update State: IN<br/>Mark intervals: 0.25 hrs, complete: false]
+                    F --> J[Update State: IN<br/>Start tracking from this time]
+                    G --> K[Update State: OUT<br/>Mark intervals: 0.25 hrs, complete: false]
+                    H --> L[Keep State: OUT<br/>Mark intervals: 0.25 hrs, incomplete: true]
+                    
+                    style E fill:#fff3e0
+                    style F fill:#e8f5e8
+                    style G fill:#e8f5e8
+                    style H fill:#ffebee
+                    style I fill:#f3e5f5
+                    style J fill:#f3e5f5
+                    style K fill:#e1f5fe
+                    style L fill:#ffebee
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Legend:</h3>
+            <ul>
+                <li><strong>hours_worked: 0.25</strong> - Represents 15 minutes of work time</li>
+                <li><strong>incomplete: true</strong> - Work period is still ongoing or was interrupted</li>
+                <li><strong>incomplete: false</strong> - Complete work period with proper start/end</li>
+                <li><strong>hours_worked: 0</strong> - No work performed during this interval</li>
+            </ul>
+        </div>
+
+        <div class="explanation">
+            <h3>Algorithm Logic Explanation:</h3>
+            <p>Your punch-in/punch-out algorithm is well-designed and handles edge cases effectively. Here's what makes it robust:</p>
+            <ul>
+                <li><strong>State Tracking:</strong> Uses `isPunchedIn` boolean to track current work state</li>
+                <li><strong>Time-based Processing:</strong> Sorts all punches chronologically before processing</li>
+                <li><strong>Edge Case Handling:</strong> Manages scenarios like consecutive IN punches or orphaned OUT punches</li>
+                <li><strong>Incomplete Work Detection:</strong> Identifies periods where work was performed but not properly closed</li>
+                <li><strong>Future Period Handling:</strong> When still punched in, marks future intervals as incomplete</li>
+            </ul>
+        </div>
+
+        <div class="test-cases">
+            <h3>Test Case Scenarios:</h3>
+            <ol>
+                <li><strong>Single IN:</strong> Creates incomplete work period from punch time to end of day</li>
+                <li><strong>IN → OUT:</strong> Creates complete work period between the two times</li>
+                <li><strong>Orphaned OUT:</strong> Assumes work from start of day, marks as incomplete</li>
+                <li><strong>IN → OUT → OUT:</strong> Second OUT creates incomplete period from first OUT to second OUT</li>
+                <li><strong>IN → IN → OUT:</strong> First IN-IN creates complete period, IN-OUT creates complete period</li>
+                <li><strong>Complex sequences:</strong> Handles multiple overlapping scenarios correctly</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+    </script>
+</body>
+</html>
